@@ -61,7 +61,7 @@ while True:
         ch_name_formatted = f"  ({ch_name})"
         v_name_formatted = v_name.ljust(80 - len(ch_name_formatted))
         pad.addstr(i, 0, f"{v_name_formatted}{ch_name_formatted}", attr)
-    pad.refresh(pad_pos, 0, 0, 0, max_y, max_x - 1)
+    pad.refresh(pad_pos, 0, 0, 0, max_y, max_x)
 
     # Get user input
     key = stdscr.getch()
