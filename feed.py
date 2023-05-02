@@ -30,8 +30,10 @@ stdscr = curses.initscr()
 curses.noecho()
 curses.cbreak()
 stdscr.keypad(True)
-max_y, max_x = stdscr.getmaxyx()
-pad = curses.newpad(len(videos), max_x)
+max_x = curses.COLS - 1
+max_y = curses.LINES - 1
+
+pad = curses.newpad(len(videos), curses.COLS )
 pad_pos = 0
 
 
@@ -44,7 +46,7 @@ while True:
     pad.clear()
 
     #Draw videos
-    for i, video in enumerate(videos[top_displayed:top_displayed + max_y - 1]):
+    for i, video in enumerate(videos[top_displayed:top_displayed + max_y]):
         if i == selected:
             attr = curses.A_REVERSE
         else:
@@ -59,7 +61,7 @@ while True:
         ch_name_formatted = f"  ({ch_name})"
         v_name_formatted = v_name.ljust(80 - len(ch_name_formatted))
         pad.addstr(i, 0, f"{v_name_formatted}{ch_name_formatted}", attr)
-    pad.refresh(pad_pos, 0, 0, 0, max_y - 1, max_x - 1)
+    pad.refresh(pad_pos, 0, 0, 0, max_y, max_x - 1)
 
     # Get user input
     key = stdscr.getch()
@@ -67,15 +69,15 @@ while True:
     if key == curses.KEY_UP:
         if(sel_index > 0):
             
-            if(selected == max_y/2 and top_displayed > 0):
+            if(selected == (max_y-1)//2 and top_displayed > 0):
                 top_displayed -=1   #screen scroll up
                 pad_pos -=1
             else:
                 selected -=1        #item scroll up
 
     elif key == curses.KEY_DOWN:
-        if sel_index < len(videos)-2:
-            if (selected==max_y/2 and top_displayed + max_y < len(videos)):
+        if sel_index < len(videos)-1:
+            if (selected == (max_y-1)//2 and top_displayed + max_y < len(videos)):
                 top_displayed +=1 #screen scroll down
             else:
                 selected +=1 #item scroll down
