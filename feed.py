@@ -5,7 +5,7 @@ import threading
 from collections import namedtuple
 
 def play_video(link):
-    command = f"vlc $(python3 ytdl-patched -g --format 22 {link})> /dev/null 2>&1"
+    command = f"vlc -f $(yt-dlp -g --format 22 {link})> /dev/null 2>&1"
     subprocess.run(command, shell=True)
 
 Video = namedtuple('Video', ['title', 'author', 'date', 'link'])
