@@ -3,6 +3,7 @@ import subprocess
 import curses
 import threading
 from collections import namedtuple
+import concurrent.futures
 
 def play_video(link):
     command = f"vlc -f $(yt-dlp -g --format 22 {link})> /dev/null 2>&1"
@@ -13,13 +14,37 @@ Video = namedtuple('Video', ['title', 'author', 'date', 'link'])
 with open("channel_ids.txt") as f:
     channel_ids = [line.strip() for line in f]
 
-# Get video feed from all channels
-videos = []
-for channel_id in channel_ids:
+class Video:
+    def __init__(self, title, author, date, link):
+        self.title = title
+        self.author = author
+        self.date = date
+        self.link = link
+
+def gather_feed(channel_id):
     url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}&exclude=shorts"
-    feed = feedparser.parse(url)
-    for entry in feed.entries:
-        videos.append(Video(title=entry.get('title'), author=entry.get('author'), date=entry.get('published_parsed'), link=entry.get('link')))
+    return feedparser.parse(url)
+
+def parse_entry(entry):
+    return Video(
+        title=entry.get('title'),
+        author=entry.get('author'),
+        date=entry.get('published_parsed'),
+        link=entry.get('link')
+    )
+# Create a ThreadPoolExecutor with a maximum of 5 worker threads
+with concurrent.futures.ThreadPoolExecutor(max_workers=len(channel_ids)) as executor:
+    # Gather feeds asynchronously
+    feed_futures = [executor.submit(gather_feed, channel_id) for channel_id in channel_ids]
+
+    videos = []
+
+    # Process feed entries and parse them into videos
+    for future in concurrent.futures.as_completed(feed_futures):
+        feed = future.result()
+        for entry in feed.entries:
+            videos.append(parse_entry(entry))
+
 videos.sort(key=lambda entry: entry.date, reverse=True)
 
 
