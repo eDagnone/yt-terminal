@@ -1,4 +1,1 @@
 feedparser
-subprocess
-curses
-threading
