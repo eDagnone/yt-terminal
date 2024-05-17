@@ -4,10 +4,25 @@ import curses
 import threading
 from collections import namedtuple
 import concurrent.futures
+import os
+
+FRAMEBUFFER_MODE = True     # Play in Framebuffer (no X server). Requires fbdev to be installed. Overrides all other options.
+FULLSCREEN = True           # Play in fullscreen mode
+FORMAT = 22                 # 18 for 360p, 22 for 720p
+PLAYERS = ["mplayer", "vlc"]
+PLAYER_INDEX = 1            # For above options.
 
 def play_video(link):
-    command = f"vlc -f $(yt-dlp -g --format 22 {link})> /dev/null 2>&1"
-    subprocess.run(command, shell=True)
+    yt_dlp_str = f"$(yt-dlp -g -q --no-warnings --format {FORMAT} {link})> /dev/null 2>&1"
+    if FRAMEBUFFER_MODE:
+        if PLAYER_INDEX == 0:
+            command = f"mplayer -vo fbdev2 {yt_dlp_str}"
+        elif PLAYER_INDEX == 1:
+            command = f"vlc -I ncurses {yt_dlp_str}"
+        subprocess.call(command, shell=True)
+    else:
+        command = f"{PLAYERS[PLAYER_INDEX]} {'-f' if FULLSCREEN else ''} {yt_dlp_str}"
+        subprocess.run(command, shell=True)
 
 Video = namedtuple('Video', ['title', 'author', 'date', 'link'])
 
