@@ -11,4 +11,4 @@ External Dependencies:
 pip install -r requirements.txt
 ```
 
-
+Note: Options are preset for the best compatibility and performance for an Allwinner A20 (with a Mali 400 GPU).
