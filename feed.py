@@ -4,13 +4,12 @@ import curses
 import threading
 from collections import namedtuple
 import concurrent.futures
-import os
 
 FRAMEBUFFER_MODE = True     # Play in Framebuffer (no X server). Requires fbdev to be installed. Overrides all other options.
-FULLSCREEN = True           # Play in fullscreen mode
-FORMAT = 22                 # 18 for 360p, 22 for 720p
-PLAYERS = ["mplayer", "vlc"]
-PLAYER_INDEX = 1            # For above options.
+FULLSCREEN = False           # Play in fullscreen mode
+FORMAT = 22                  # 18 for 360p, 22 for 720p
+PLAYERS = ["mplayer", "vlc", "mpv", "ffplay"]
+PLAYER_INDEX = 3            # For above options.
 
 def play_video(link):
     yt_dlp_str = f"$(yt-dlp -g -q --no-warnings --format {FORMAT} {link})> /dev/null 2>&1"
@@ -19,6 +18,10 @@ def play_video(link):
             command = f"mplayer -vo fbdev2 {yt_dlp_str}"
         elif PLAYER_INDEX == 1:
             command = f"vlc -I ncurses {yt_dlp_str}"
+        elif PLAYER_INDEX == 2:
+            command = f"mpv --vo=gpu --profile=sw-fast --framedrop=decoder --video-unscaled --vd-lavc-skipidct=bidir --vd-lavc-skiploopfilter=bidir {yt_dlp_str}"
+        elif PLAYER_INDEX == 3:
+            command = f"ffplay -fast -framedrop -sn -skip_loop_filter bidir -skip_idct bidir {yt_dlp_str}"
         subprocess.call(command, shell=True)
     else:
         command = f"{PLAYERS[PLAYER_INDEX]} {'-f' if FULLSCREEN else ''} {yt_dlp_str}"
@@ -47,21 +50,26 @@ def parse_entry(entry):
         date=entry.get('published_parsed'),
         link=entry.get('link')
     )
+
+print("Creating Threads...")
 # Create a ThreadPoolExecutor with a maximum of 5 worker threads
 with concurrent.futures.ThreadPoolExecutor(max_workers=len(channel_ids)) as executor:
     # Gather feeds asynchronously
+    print("Pulling RSS...")
     feed_futures = [executor.submit(gather_feed, channel_id) for channel_id in channel_ids]
 
     videos = []
-
     # Process feed entries and parse them into videos
     for future in concurrent.futures.as_completed(feed_futures):
+        print("Parsing...")
         feed = future.result()
         for entry in feed.entries:
             videos.append(parse_entry(entry))
 
+print("Sorting...")
 videos.sort(key=lambda entry: entry.date, reverse=True)
 
+print("Setting up curses window...")
 
 
 # Create a new curses window and pad
@@ -91,7 +99,6 @@ while True:
             attr = curses.A_REVERSE
         else:
             attr = curses.A_NORMAL
-        
         v_name = video.title
         if len(v_name) > 60:
             v_name = v_name[:60]
@@ -108,7 +115,7 @@ while True:
     sel_index = top_displayed + selected
     if key == curses.KEY_UP:
         if(sel_index > 0):
-            
+
             if(selected == (max_y-1)//2 and top_displayed > 0):
                 top_displayed -=1   #screen scroll up
                 pad_pos -=1
@@ -123,8 +130,7 @@ while True:
                 selected +=1 #item scroll down
     elif key == ord('\n'):
         video = videos[top_displayed + selected]
-        thread = threading.Thread(target=play_video, args=(video.link,))
-        thread.start()
+        play_video(video.link)
         stdscr.refresh()
         stdscr.getch()
     elif key == ord('q'):
