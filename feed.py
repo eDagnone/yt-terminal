@@ -4,6 +4,8 @@ import curses
 import threading
 from collections import namedtuple
 import concurrent.futures
+import yt_dlp
+
 
 FRAMEBUFFER_MODE = True     # Play in Framebuffer (no X server). Requires fbdev to be installed. Overrides all other options.
 FULLSCREEN = False           # Play in fullscreen mode
@@ -11,8 +13,18 @@ FORMAT = 22                  # 18 for 360p, 22 for 720p
 PLAYERS = ["mplayer", "vlc", "mpv", "ffplay"]
 PLAYER_INDEX = 3            # For above options.
 
+def getStreamURL(URL):
+    ydl_opts = {}
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(URL, download=False)
+        formats = info['formats']
+        for format in formats:
+            if(format['format_id'] == '18'):
+                return format['url']
+
+
 def play_video(link):
-    yt_dlp_str = f"$(yt-dlp -g -q --no-warnings --format {FORMAT} {link})> /dev/null 2>&1"
+    yt_dlp_str = getStreamURL(link)
     if FRAMEBUFFER_MODE:
         if PLAYER_INDEX == 0:
             command = f"mplayer -vo fbdev2 {yt_dlp_str}"
