@@ -9,22 +9,27 @@ import yt_dlp
 
 FRAMEBUFFER_MODE = True     # Play in Framebuffer (no X server). Requires fbdev to be installed. Overrides all other options.
 FULLSCREEN = False           # Play in fullscreen mode
-FORMAT = 22                  # 18 for 360p, 22 for 720p
+FORMAT = 18                  # 18 for 360p, 22 for 720p
 PLAYERS = ["mplayer", "vlc", "mpv", "ffplay"]
-PLAYER_INDEX = 3            # For above options.
+PLAYER_INDEX = 2            # For above options.
 
 def getStreamURL(URL):
-    ydl_opts = {}
+    ydl_opts = {
+        'quiet': True, 
+        'no_warnings': True, 
+        'verbose': False,
+        'skip_download': True
+    }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(URL, download=False)
         formats = info['formats']
         for format in formats:
-            if(format['format_id'] == '18'):
-                return format['url']
+            if(format['format_id'] == str(FORMAT)):
+                return format['url'] 
 
 
 def play_video(link):
-    yt_dlp_str = getStreamURL(link)
+    yt_dlp_str = "'" + getStreamURL(link) + "'"
     if FRAMEBUFFER_MODE:
         if PLAYER_INDEX == 0:
             command = f"mplayer -vo fbdev2 {yt_dlp_str}"
